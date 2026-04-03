@@ -4182,6 +4182,7 @@ function startSession(){
   try{_updateBoekLink();}catch(e){}
   // Toon suggestievragen zodra gesprek start
   try{_toonVervolgVraagPreview();}catch(e){}
+  try{_toonBoekSuggestie();}catch(e){}
 }
 function stopSession(){
   if(!confirm('Gesprek stoppen?'))return;
@@ -4432,7 +4433,8 @@ function switchBook(i){
   _updateBoekLink();
   _openBoekInVoorbereiding(sessionBooks[i]?.title);
   // Herlaad boekvraag-suggestie voor het nieuwe boek
-  /* boekvragen nu in vervolgvraag-preview */
+  _toonVervolgVraagPreview();
+  _toonBoekSuggestie();
 }
 
 function _openBoekInVoorbereiding(title){
@@ -4708,8 +4710,9 @@ function _laadVolgendeAdaptief(){
     qHistoryPos=qHistory.length-1;
     setCurrentQ(q,false);
     renderAdaptieveIndicator();
-    // Toon vervolgvraag-preview met alternatieve suggestie
+    // Toon vervolgvraag-preview met alternatieve suggestie + boeksuggestie
     _toonVervolgVraagPreview();
+    _toonBoekSuggestie();
     return;
   }
 
@@ -4724,6 +4727,7 @@ function _laadVolgendeAdaptief(){
       setCurrentQ(qVB,false);
       renderAdaptieveIndicator();
       _toonVervolgVraagPreview();
+      _toonBoekSuggestie();
       return;
     }
   }
@@ -4731,6 +4735,7 @@ function _laadVolgendeAdaptief(){
   // Fallback: gewoon drawCard
   drawCard();
   _toonVervolgVraagPreview();
+  _toonBoekSuggestie();
 }
 
 function _leegKaartjeNaScore(){
@@ -4764,9 +4769,11 @@ function _toonVervolgVraagPreview(){
   const sug=typeof getAdaptieveSuggestie==='function'?getAdaptieveSuggestie():null;
   if(!sug){if(el)el.style.display='none';return;}
 
+  console.log('[Preview] Boekvragen geladen:', _boekVragen.length, '| Actief boek:', sessionBooks[activeBookIdx]?.title||'(geen)');
+
   const catKl={Begrip:'#2a7a2a',Interpretatie:'var(--ksh-blue)',Evaluatie:'var(--ksh-orange)'};
   const label=document.getElementById('vervolgVraagLabel');
-  if(label) label.innerHTML='↓ Aanbevolen vervolgvraag — <strong style="color:'+(catKl[sug.cat]||'var(--ksh-blue)')+'">'+sug.cat+' · '+sug.niveau+'</strong>';
+  if(label) label.innerHTML='↓ Alternatieve suggesties — <strong style="color:'+(catKl[sug.cat]||'var(--ksh-blue)')+'">'+sug.cat+' · '+sug.niveau+'</strong>';
 
   const container=document.getElementById('vervolgDrieKaarten');
   if(!container)return;
@@ -4775,8 +4782,9 @@ function _toonVervolgVraagPreview(){
 
   // 1. Zoek een boekvraag-suggestie (uit Excel vragenbank)
   var boekSug=_zoekBoekSuggestie();
+  console.log('[Preview] Boekvraag gevonden:', boekSug ? boekSug.vraag.substring(0,40) : 'GEEN');
 
-  // 2. Zoek een algemene vraag uit de vragenbank
+  // 2. Zoek een algemene vraag uit de vragenbank (anders dan huidige vraag)
   var qVB=_zoekInVragenbank(sug.cat,sug.niveau);
 
   // Bouw de kaarten — boeksuggestie eerst (als beschikbaar), dan vragenbank
